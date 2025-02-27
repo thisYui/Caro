@@ -1,0 +1,6 @@
+mcts/cmake-build-debug/
+mcts/.idea/
+ui/.idea/
+ui/build/
+.vscode/
+.idea/

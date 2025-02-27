@@ -1,0 +1,3 @@
+# Make file.py to .exe file
+cd ".../Caro/ui/"
+pyinstaller --onefile --windowed --name=caro --add-binary="../mcts/libmcts.dll;mcts" main.py
