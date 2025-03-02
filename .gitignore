@@ -4,7 +4,6 @@ mcts/.idea/
 
 # In ui
 ui/.idea/
-ui/build/
 ui/__pycache__/
 
 # In root
