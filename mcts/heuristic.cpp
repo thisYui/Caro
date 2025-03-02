@@ -9,8 +9,10 @@ Position checkConsecutiveArea(const std::unordered_map<Position, Player>& board,
     const Player& player, const int& condition) {
     std::unordered_set<Position> posPlayer = filterPlayer(board, player);
 
+    Position move = 0;
     for (const auto& pos : posPlayer) {
         for (int i = 0; i < COUNT_DIRECTION; ++i) {
+            Position oppositePos = sum(pos, dx[i] * -1, dy[i] * -1);
             Position emtyCell = 0;
             int count = 1;
 
@@ -29,7 +31,10 @@ Position checkConsecutiveArea(const std::unordered_map<Position, Player>& board,
                 else break;
             }
 
-            if (count == condition - 1 && emtyCell != 0) return emtyCell;
+            if (count == condition - 1 && emtyCell != 0) {
+                if (!board.contains(oppositePos)) return emtyCell;  // If the opposite cell is empty, return this cell
+                move = emtyCell;
+            }
         }
     }
 
@@ -41,7 +46,7 @@ Position checkConsecutiveArea(const std::unordered_map<Position, Player>& board,
     // If it is on the board, you know you can't win right away
     // If you can win right away, you can return the cell you can win
 
-    return 0;  // If error, return 0
+    return move;
 }
 
 void filterMoves(const std::unordered_map<Position, Player>& board,

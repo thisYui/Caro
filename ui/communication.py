@@ -1,7 +1,3 @@
-"""
-
-"""
-
 import ctypes
 
 # Tải thư viện DLL
@@ -51,7 +47,7 @@ class Board:
         arr = []
         for (x, y), player in self.board.items():
             arr.extend([x, y, player])  # Chuyển từng phần tử thành list [x, y, player]
-        return  arr
+        return arr
 
     def next_move(self, last_move_x, last_move_y):
         """Get the next move"""

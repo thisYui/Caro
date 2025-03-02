@@ -1,7 +1,3 @@
-"""
-
-"""
-
 import pygame
 from communication import Board
 import threading
