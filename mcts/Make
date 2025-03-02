@@ -1,3 +1,0 @@
-# Create a shared library
-cd "...\Caro\mcts"
-g++ -std=c++20 -shared -o lib/libmcts.dll lib.cpp ulis.cpp mcts.cpp "-Wl,--out-implib,lib/libmcts.a"

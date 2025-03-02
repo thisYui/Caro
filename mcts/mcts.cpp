@@ -1,14 +1,9 @@
 #include "mcts.h"
+#include "heuristic.h"
 #include <cmath>
 #include <limits>
 #include <random>
 #include <algorithm>
-
-
-static void decode(Position position, int& x, int& y) {
-    x = position >> 8;
-    y = position & 0xFF;
-}
 
 // Choose the best move for the current player
 static double computeUCT(const int wins, const int visits,
@@ -31,15 +26,14 @@ static double computeUCT(const int wins, const int visits,
 Node* select(const Node* const& root) {
     if (!root || root->children.empty()) return nullptr;  // Check node nullptr
 
+
     double bestUCT = -std::numeric_limits<double>::infinity();  // Get negative infinity is the bestUTC
     Node* bestMove = nullptr;  // Best move
     int minDistance = std::numeric_limits<int>::max();  // Save the minimum distance
 
     const int totalSimulations = std::max(1, root->visits);  // Avoid log(0)
-
     for (const auto& child : root->children) {
         if (!child) continue;
-
         double uctValue = computeUCT(child->wins, child->visits, totalSimulations);
 
         const int childX = child->lastMove >> 8,
@@ -60,32 +54,9 @@ Node* select(const Node* const& root) {
     return bestMove;
 }
 
-void expand(Node*& node, const int MAX_X, const int MAX_Y){
-    if (!node || !node->children.empty()) return;
-
+void expand(Node*& node){
     std::unordered_set<Position> possibleMoves;
-
-    // Identify cells around the current board
-    for (const auto& [pos, player] : node->boardState) {
-       const int x = pos >> 8, y = pos & 0xFF; // Decode Position
-
-        // Check 8 cells around the current cell
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                if (dx == 0 && dy == 0) continue; // Skip the current cell
-                const int nx = x + dx, ny = y + dy;
-                if (nx < 0 || ny < 0 || nx >= MAX_X || ny >= MAX_Y) continue; // Check out of range
-
-                Position newMove = encode(nx, ny);
-                // Check if the cell is not in the boardState, add it to the possibleMoves
-                if (!node->boardState.contains(newMove)) { // Just in C++20
-                    // If using C++ under 20, use:
-                    // if (node->boardState.find(newMove) == node->boardState.end())
-                    possibleMoves.insert(newMove);
-                }
-            }
-        }
-    }
+    extendMoves(node->boardState, 1, possibleMoves);  // Extend the area to 3x3, 1 = (3 - 1) / 2
 
     // Created children node from possibleMoves
     for (Position move : possibleMoves) {
@@ -94,7 +65,7 @@ void expand(Node*& node, const int MAX_X, const int MAX_Y){
 
         // Create a new child node
         auto child = std::make_unique<Node>(newBoard, getOpponent(node->currentPlayer), move);
-        child->parent = node; // Gán cha của node con
+        child->parent = node; // Assign the parent node
 
         // Add node to the children list
         node->children.push_back(std::move(child));
@@ -102,47 +73,9 @@ void expand(Node*& node, const int MAX_X, const int MAX_Y){
 }
 
 static bool isGameOver(const std::unordered_map<Position, Player>& board,
-    const Position& lastMove, const int& WIN_CONDITION = 5) {
-    if (lastMove == 0) return false; // Doesn't have any move, game is not over
-
-    const int x = lastMove >> 8, y = lastMove & 0xFF; // Decode Position
-    const Player current = board.at(lastMove); // Get the current player at the last move
-
-    // Directions to check, 8 directions
-    constexpr int dx[] = {1, 0, 1, 1}, dy[] = {0, 1, 1, -1};
-
-    for (int d = 0; d < 4; d++) {
-        int count = 1; // Count the number of consecutive pieces
-
-        // Traverse in 2 directions
-        for (int dir = -1; dir <= 1; dir += 2) {
-            int nx = x, ny = y;
-            while (true) {
-                nx += dx[d] * dir;
-                ny += dy[d] * dir;
-                Position nextPos = encode(nx, ny);
-
-                if (board.contains(nextPos) && board.at(nextPos) == current) {  // Just in C++20 or higher
-                    count++;
-                }
-                else {
-                    break;
-                }
-            }
-        }
-
-        // If the number of consecutive pieces >= WIN_CONDITION, the current player wins
-        if (count >= WIN_CONDITION) {
-            return true;
-        }
-    }
-
-    // Check if the board is full
-    if (board.size() >= 255 * 255) {
-        return false;
-    }
-
-    return false; // Game is not over
+    const Position& lastMove) {
+    if (consecutive(board, board.at(lastMove))) return true;
+    return false;
 }
 
 static Player getWinner(const std::unordered_map<Position, Player>& board, const Position& lastMove) {
@@ -154,55 +87,22 @@ Player simulate(const Node* const& node) {
 
     std::unordered_map<Position, Player> simBoard = node->boardState;
     Player simPlayer = node->currentPlayer;
-    Position lastPos = 0;
+    Position lastPos = node->lastMove;
 
     std::unordered_set<Position> possibleMoves;
-
-    // Check the cells near the available cell
-    for (const auto& [pos, _] : simBoard) {
-        int x = pos >> 8, y = pos & 0xFF;
-
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dy = -2; dy <= 2; dy++) {
-                const int nx = x + dx, ny = y + dy;
-                if (nx < 0 || ny < 0 || nx >= 255 || ny >= 255) continue; // Check bounds
-
-                Position move = encode(nx, ny);
-                if (!simBoard.contains(move)) {
-                    possibleMoves.insert(move);
-                }
-            }
-        }
-    }
+    extendMoves(simBoard, 4, possibleMoves);  // Extend the area to 9x9, 4 = (9 -1) / 2
 
     while (!possibleMoves.empty()) {
-        // Choose a random move from the best moves
-        // Using static to avoid reseeding the random number generator
-        static std::random_device rd;
-        static std::mt19937 gen(rd());
-        std::vector<Position> moves(possibleMoves.begin(), possibleMoves.end());
+        // Choose the best move from heuristic
+        Position move = heuristic(simBoard, simPlayer, lastPos, possibleMoves);
+        if (move == 0) break;  // If the move is invalid, break the loop
 
-        // Created a uniform distribution from 0 to moves.size() - 1
-        std::uniform_int_distribution<size_t> dist(0, moves.size() - 1);
-        Position randomMove = moves[dist(gen)];
-
-        simBoard[randomMove] = simPlayer;
-        lastPos = randomMove;
+        simBoard[move] = simPlayer;
+        lastPos = move;
 
         // Update the possible can be moves
-        possibleMoves.erase(randomMove);
-        const int x = randomMove >> 8, y = randomMove & 0xFF;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dy = -2; dy <= 2; dy++) {
-                const int nx = x + dx, ny = y + dy;
-                if (nx < 0 || ny < 0 || nx >= 255 || ny >= 255) continue;  // Check bounds
-
-                Position newMove = encode(nx, ny);
-                if (!simBoard.contains(newMove)) {
-                    possibleMoves.insert(newMove);
-                }
-            }
-        }
+        possibleMoves.erase(move);
+        extendMoves(simBoard, 2, possibleMoves);
 
         if (isGameOver(simBoard, lastPos)) {
             return getWinner(simBoard, lastPos);
@@ -216,23 +116,36 @@ Player simulate(const Node* const& node) {
 
 void backpropagate(Node*& node, Player winner) {
     while (node != nullptr) {
-        node->visits++;  // Tăng số lần thăm trạng thái này
-        if (node->currentPlayer == winner) {
-            node->wins++;  // Nếu người chơi hiện tại thắng, tăng số lần thắng
+        node->visits++;  // Increase the number of visits
+        if (Player::O == winner) {
+            node->wins++;  // If the winner is O, increase the number of wins
         }
-        node = node->parent;  // Đi ngược lên cha của nó
+        node = node->parent;  // Move to the parent node
     }
 }
 
 Node* mcts(Node* root, const int& iterations) {
+    Position p = 0;
+    // The same heurictis but not random, just check the best move
+    p = checkConsecutiveArea(root->boardState, root->currentPlayer, WIN_CONDITION);
+    if (p == 0) p = checkConsecutiveArea(root->boardState, getOpponent(root->currentPlayer), WIN_CONDITION);
+    if (p == 0) p = checkConsecutiveArea(root->boardState, root->currentPlayer, WIN_CONDITION - 1);
+    if (p == 0) p = checkConsecutiveArea(root->boardState, getOpponent(root->currentPlayer), WIN_CONDITION - 1);
+    if (p != 0) {
+        root->boardState[p] = root->currentPlayer;
+        root->lastMove = p;
+        return root;
+    }
+
     for (int i = 0; i < iterations; i++) {
-        // Chọn nút tốt nhất để mở rộng
+        // Choose the best node to expand
         Node* selectedNode = select(root);
+        selectedNode = selectedNode ? selectedNode : root;
 
         // Mở rộng cây
         expand(selectedNode);
 
-        // Mô phỏng trò chơi
+        // Simulate the game
         Node* simulationNode = selectedNode;
         if (!selectedNode->children.empty() && selectedNode->children.front()) {
             simulationNode = selectedNode->children.front().get();
@@ -240,6 +153,7 @@ Node* mcts(Node* root, const int& iterations) {
 
         Player winner = simulate(simulationNode);
         backpropagate(simulationNode, winner);
+
     }
     // Choose the best move
     const auto bestChild = std::max_element(

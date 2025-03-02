@@ -4,7 +4,7 @@
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[('../mcts/libmcts.dll', 'mcts')],
+    binaries=[('../mcts/lib/libmcts.dll', 'mcts/lib')],
     datas=[],
     hiddenimports=[],
     hookspath=[],
@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='caro',
+    name='Caro',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

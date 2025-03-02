@@ -12,7 +12,7 @@
 #define DLL_EXPORT
 #endif
 
-#include "type.h"
+#include "utils.h"
 
 extern "C" {
     DLL_EXPORT Position decision(const int* arr, const int size, const Position lastMove);
@@ -22,7 +22,7 @@ extern "C" {
 Node* select(const Node* const& root);
 
 //Expand the tree
-void expand(Node*& node, const int MAX_X = 255, const int MAX_Y = 255);
+void expand(Node*& node);
 
 // Simulate the game
 Player simulate(const Node* const& node);

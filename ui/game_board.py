@@ -17,9 +17,9 @@ class StartGame:
         self.in_game = False
 
         # Pictures
-        self.start_bg = pygame.image.load(r"../ui/assets/start_bg.png")
-        self.start_button_img = pygame.image.load(r"../ui/assets/start_button.png")
-        self.icon = pygame.image.load(r"../ui/assets/icon.png")
+        self.start_bg = pygame.image.load(r"assets/start_bg.png")
+        self.start_button_img = pygame.image.load(r"assets/start_button.png")
+        self.icon = pygame.image.load(r"assets/icon.png")
 
         # Calculate the new size of the background image
         original_width, original_height = self.start_bg.get_size()
@@ -92,16 +92,16 @@ class GameBoard:
         self.piece_size = int(self.cell_size * self.piece_scale)
 
         # Pictures
-        self.icon = pygame.image.load(r"../ui/assets/icon.png")
-        self.cell_img = pygame.image.load(r"../ui/assets/cell.png")
-        self.o_img = pygame.transform.scale(pygame.image.load(r"../ui/assets/O.png"), (self.piece_size, self.piece_size))
-        self.x_img = pygame.transform.scale(pygame.image.load(r"../ui/assets/X.png"), (self.piece_size, self.piece_size))
+        self.icon = pygame.image.load(r"assets/icon.png")
+        self.cell_img = pygame.image.load(r"assets/cell.png")
+        self.o_img = pygame.transform.scale(pygame.image.load(r"assets/O.png"), (self.piece_size, self.piece_size))
+        self.x_img = pygame.transform.scale(pygame.image.load(r"assets/X.png"), (self.piece_size, self.piece_size))
         self.reset_img = pygame.transform.scale(
-            pygame.image.load(r"../ui/assets/reset_button.png"), (self.piece_size, self.piece_size))
+            pygame.image.load(r"assets/reset_button.png"), (self.piece_size, self.piece_size))
         self.win_img = pygame.transform.scale(
-            pygame.image.load(r"../ui/assets/win.png"), (7 * 0.1 * self.screen_width, 2 * 0.1 * self.screen_height))
+            pygame.image.load(r"assets/win.png"), (7 * 0.1 * self.screen_width, 2 * 0.1 * self.screen_height))
         self.lose_img = pygame.transform.scale(
-            pygame.image.load(r"../ui/assets/lose.png"), (7 * 0.1 * self.screen_width, 2 * 0.1 * self.screen_height))
+            pygame.image.load(r"assets/lose.png"), (7 * 0.1 * self.screen_width, 2 * 0.1 * self.screen_height))
 
         # Chess board management
         self.offset_x, self.offset_y = -128 * self.cell_size, -128 * self.cell_size  # Offset of the board
@@ -156,6 +156,31 @@ class GameBoard:
         self._turn["turn"] = 1
         self.board.clear()
 
+    def check_win(self):
+        check = self.board.check_winner()
+        if check is not None:
+            pygame.display.flip()  # Update the screen
+            self.reset_screen()  # Reset the screen
+            if check == 1:
+                self.screen.blit(self.win_img, (self.screen_width // 2 - 3.5 * 0.1 * self.screen_width,
+                                                self.screen_height // 2 - 0.4 * self.screen_height))
+            elif check == 0:
+                self.screen.blit(self.lose_img, (self.screen_width // 2 - 3.5 * 0.1 * self.screen_width,
+                                                 self.screen_height // 2 - 0.4 * self.screen_height))
+            pygame.display.flip()  # Update the screen
+
+            while self.running:
+                event = pygame.event.wait()  # Chờ sự kiện xảy ra
+
+                if event.type == pygame.QUIT:
+                    self.running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        self.reset_params()
+                        break
+        else:
+            return False
+
     def run(self):
         """Run the game."""
         pygame.init()
@@ -164,26 +189,7 @@ class GameBoard:
 
         while self.running:
             self.reset_screen()  # Reset the screen
-
-            check = self.board.check_winner()
-            if check is not None:
-                if check == 1:
-                    self.screen.blit(self.win_img, (self.screen_width // 2 - 3.5 * 0.1 * self.screen_width,
-                                                    self.screen_height // 2 - 0.4 * self.screen_height))
-                elif check == 0:
-                    self.screen.blit(self.lose_img, (self.screen_width // 2 - 3.5 * 0.1 * self.screen_width,
-                                                     self.screen_height // 2 - 0.4 * self.screen_height))
-                pygame.display.flip()  # Update the screen
-
-                while self.running:
-                    event = pygame.event.wait()  # Chờ sự kiện xảy ra
-
-                    if event.type == pygame.QUIT:
-                        self.running = False
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
-                        if event.button == 1:
-                            self.reset_params()
-                            break
+            self.check_win()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -209,7 +215,8 @@ class GameBoard:
                             self._turn["turn"] = 0
 
                             # Call the next move
-                            threading.Thread(target=self.board.next_move, args=(row, col)).start()
+                            if not self.check_win():
+                                threading.Thread(target=self.board.next_move, args=(row, col)).start()
 
                     elif event.button == 3:  # Click the right mouse button to move the board
                         self.dragging = True

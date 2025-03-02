@@ -9,21 +9,19 @@
 #include <vector>
 #include <cstdint>
 #include <memory>
-#include <unordered_set>
+
+constexpr int WIN_CONDITION = 5;
+constexpr int BORDER_TOP = 255;
+constexpr int BORDER_BOTTOM = 0;
+
+constexpr int dx[] = {1, 0, 1, 1, -1, 0, -1, -1,}, dy[] = {0, 1, 1, -1, 0, -1, -1, 1};
+constexpr int COUNT_DIRECTION = 8;
 
 using Position = uint16_t;
 using Byte = uint8_t;
 
-inline Position encode(const int x, const int y) {
-    return (x << 8) | y;
-}
-
 // Identify player
 enum Player { X, O, None };
-
-inline Player getOpponent(const Player player) {
-    return (player == Player::X) ? Player::O : Player::X;
-}
 
 struct Box {
     int upLeft, upRight, downLeft, downRight;
@@ -40,10 +38,6 @@ struct Node {
 
     Node(std::unordered_map<Position, Player> state, Player turn, Position move, Node* p = nullptr)
         : boardState(std::move(state)), currentPlayer(turn), lastMove(move), parent(p) {}
-
-    void createChildren();
 };
-
-std::unordered_map<Position, Player> convertToMap(const int*& arr, const int& size);
 
 #endif //TYPE_H

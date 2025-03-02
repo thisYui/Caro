@@ -1,6 +1,12 @@
+# In mcst
 mcts/cmake-build-debug/
 mcts/.idea/
+
+# In ui
 ui/.idea/
 ui/build/
+ui/__pycache__/
+
+# In root
 .vscode/
 .idea/

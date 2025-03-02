@@ -11,7 +11,6 @@ extern "C" {
 
           // Create the root of the MCTS tree
           Node* root = new Node(map, currentPlayer, lastMove);
-          root->createChildren();
 
           // Run MCTS algorithm
           Node* bestMoveNode = mcts(root);

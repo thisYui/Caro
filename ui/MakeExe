@@ -1,0 +1,15 @@
+# Install pyinstaller
+- First you need to install pyinstaller by using pip
+- Go to terminal and type:
+
+cd ".../Caro/ui/"
+pip install pyinstaller
+
+* attention .dll is for Windows, .so is for Linux and you make sure location you save pyinstaller
+
+# Make file.py to .exe file
+
+cd ".../Caro/ui/"
+pyinstaller --onefile --windowed --name=Caro --add-binary "../mcts/lib/libmcts.dll;mcts/lib" --add-data "../ui/assets;assets" main.py
+
+- File exe will be in dist folder
