@@ -126,11 +126,9 @@ void backpropagate(Node*& node, Player winner) {
 
 Node* mcts(Node* root, const int& iterations) {
     Position p = 0;
+    std::unordered_set<Position> emtySet;
     // The same heurictis but not random, just check the best move
-    p = checkConsecutiveArea(root->boardState, root->currentPlayer, WIN_CONDITION);
-    if (p == 0) p = checkConsecutiveArea(root->boardState, getOpponent(root->currentPlayer), WIN_CONDITION);
-    if (p == 0) p = checkConsecutiveArea(root->boardState, root->currentPlayer, WIN_CONDITION - 1);
-    if (p == 0) p = checkConsecutiveArea(root->boardState, getOpponent(root->currentPlayer), WIN_CONDITION - 1);
+    p = heuristic(root->boardState, root->currentPlayer, root->lastMove, emtySet);
     if (p != 0) {
         root->boardState[p] = root->currentPlayer;
         root->lastMove = p;
