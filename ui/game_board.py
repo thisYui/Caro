@@ -174,6 +174,8 @@ class GameBoard:
                     if event.button == 1:
                         self.reset_params()
                         break
+            return True
+        
         else:
             return False
 
